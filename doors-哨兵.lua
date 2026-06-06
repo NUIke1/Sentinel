@@ -2186,6 +2186,11 @@ Y:Toggle({
     Callback = function(state)
         local player = game.Players.LocalPlayer
         player.Stunned = state
+        if state then
+            WindUI:Notify("眩晕", "已启用", 2)
+        else
+            WindUI:Notify("眩晕", "已禁用", 2)
+        end
     end
 })
 
@@ -2194,6 +2199,7 @@ local Oxygenslider = Y:Slider({
     Value = { Min = 0, Max = 100, Default = 100 },
     Callback = function(value)
         game.Players.LocalPlayer.Oxygen = value
+        WindUI:Notify("氧气", "当前氧气值: " .. value, 1)
     end
 })
 
@@ -2202,6 +2208,55 @@ local SpeedBoostSlider = Y:Slider({
     Value = { Min = 0, Max = 10, Default = 0 },
     Callback = function(value)
         game.Players.LocalPlayer.SpeedBoost = value
+        WindUI:Notify("速度增益", "当前增益: " .. value, 1)
+    end
+})
+
+local upsideDownActive = false
+local upsideDownConn = nil
+
+Y:Toggle({
+    Title = "倒立",
+    Default = false,
+    Callback = function(Value)
+        upsideDownActive = Value
+        local LocalPlayer = game:GetService("Players").LocalPlayer
+        
+        local function setUpsideDown(state)
+            local char = LocalPlayer.Character
+            if not char then return end
+            
+            local collision = char:FindFirstChild("Collision")
+            if not collision then return end
+            
+            if state then
+                local rotation = collision.Rotation
+                collision.Rotation = Vector3.new(rotation.X, rotation.Y, -90)
+            else
+                local rotation = collision.Rotation
+                collision.Rotation = Vector3.new(rotation.X, rotation.Y, 90)
+            end
+        end
+        
+        if upsideDownConn then
+            upsideDownConn:Disconnect()
+            upsideDownConn = nil
+        end
+        
+        setUpsideDown(Value)
+        
+        if Value then
+            upsideDownConn = LocalPlayer.CharacterAdded:Connect(function(newChar)
+                task.wait(0.5)
+                local collision = newChar:FindFirstChild("Collision")
+                if collision then
+                    local rotation = collision.Rotation
+                    collision.Rotation = Vector3.new(rotation.X, rotation.Y, -90)
+                end
+            end)
+        end
+        
+        WindUI:Notify("倒立", Value and "已启用" or "已禁用", 2)
     end
 })
 
@@ -2299,30 +2354,6 @@ Y:Toggle({
         end
     })
     
-Y:Toggle({
-    Title = "允许跳跃",
-    Default = false,
-    Callback = function(Value)
-        local function setJump(state)
-            local char = game.Players.LocalPlayer.Character
-            if char then
-                char:SetAttribute("CanJump", state)
-            end
-        end
-        
-        setJump(Value)
-        
-        game.Players.LocalPlayer.CharacterAdded:Connect(function(newChar)
-            task.wait(1.5)
-            if Value then
-                newChar:SetAttribute("CanJump", true)
-            end
-        end)
-        
-        WindUI:Notify("跳跃", Value and "已启用" or "已禁用", 2)
-    end
-})
-
 B:Toggle({
     Title = "自动治疗",
     Default = false,
@@ -2524,33 +2555,5 @@ B:Toggle({
         else
             if conn then conn:Disconnect() end
         end
-    end
-})
-
-Y:Toggle({
-    Title = "倒立",
-    Default = false,
-    Callback = function(Value)
-        local LocalPlayer = game:GetService("Players").LocalPlayer
-        
-        local function setUpsideDown(state)
-            local char = LocalPlayer.Character
-            if not char then return end
-            
-            local collision = char:FindFirstChild("Collision")
-            if not collision then return end
-            
-            if state then
-                local rotation = collision.Rotation
-                collision.Rotation = Vector3.new(rotation.X, rotation.Y, -90)
-            else
-                local rotation = collision.Rotation
-                collision.Rotation = Vector3.new(rotation.X, rotation.Y, 90)
-            end
-        end
-        
-        setUpsideDown(Value)
-        
-        WindUI:Notify("倒立", Value and "已启用" or "已禁用", 2)
     end
 })
