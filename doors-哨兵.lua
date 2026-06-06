@@ -137,9 +137,6 @@ Window:CreateTopbarButton("theme-switcher", "moon", function()
     WindUI:Notify({ Title = "主题已更改", Content = "当前主题: "..WindUI:GetCurrentTheme(), Duration = 2 })
 end, 990)
 
-local SettingsSection = Window:Section({ Title = "设置", Opened = true })
-local SettingsTab = SettingsSection:Tab({ Title = "设置", Icon = "settings" })
-
 local VisualSection = Window:Section({ Title = "透视&视觉", Opened = true })
 local ConfigSection = VisualSection:Tab({ Title = "颜色配置", Icon = "palette" })
 local PlayerTab = VisualSection:Tab({ Title = "玩家透视", Icon = "user" })
@@ -153,11 +150,17 @@ local NotifyMainTab = NotifySection:Tab({ Title = "怪物提示", Icon = "bell" 
 local NotifyItemTab = NotifySection:Tab({ Title = "物品提示", Icon = "bell-dot" })
 local NotifySubTab = NotifySection:Tab({ Title = "提示设置", Icon = "settings" })
 
+local EvasionSection = Window:Section({ Title = "规避", Opened = true })
+local EvasionTab = EvasionSection:Tab({ Title = "规避", Icon = "shield" })
+
 local MovementSection = Window:Section({ Title = "娱乐", Opened = true })
 local Y = MovementSection:Tab({ Title = "娱乐", Icon = "user" })
 
 local M = Window:Section({ Title = "主要", Opened = true })
 local m = M:Tab({ Title = "主要", Icon = "user" })
+
+local SettingsSection = Window:Section({ Title = "设置", Opened = true })
+local SettingsTab = SettingsSection:Tab({ Title = "设置", Icon = "settings" })
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -612,6 +615,327 @@ NotifySubTab:Dropdown({
     end
 })
 
+EvasionTab:Toggle({
+    Title = "防香蕉皮",
+    Default = false,
+    Callback = function(Value)
+        local currentRooms = workspace:WaitForChild("CurrentRooms")
+        
+        if getgenv().antiBananaConn then
+            getgenv().antiBananaConn:Disconnect()
+            getgenv().antiBananaConn = nil
+        end
+
+        for _, v in pairs(currentRooms:GetDescendants()) do
+            if v.Name == "BananaPeel" and v:IsA("BasePart") then
+                v.CanTouch = not Value
+            end
+        end
+
+        if Value then
+            getgenv().antiBananaConn = currentRooms.DescendantAdded:Connect(function(v)
+                if v.Name == "BananaPeel" and v:IsA("BasePart") then
+                    v.CanTouch = false
+                end
+            end)
+        end
+        WindUI:Notify("防香蕉皮", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+EvasionTab:Toggle({
+    Title = "防Jeff杀手",
+    Default = false,
+    Callback = function(Value)
+        local currentRooms = workspace:WaitForChild("CurrentRooms")
+        
+        if getgenv().antiJeffConn then
+            getgenv().antiJeffConn:Disconnect()
+            getgenv().antiJeffConn = nil
+        end
+
+        for _, model in pairs(currentRooms:GetDescendants()) do
+            if model.Name == "JeffTheKiller" and model:IsA("Model") then
+                for _, part in ipairs(model:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        part.CanTouch = not Value
+                    end
+                end
+            end
+        end
+
+        if Value then
+            getgenv().antiJeffConn = currentRooms.DescendantAdded:Connect(function(v)
+                if v.Name == "JeffTheKiller" and v:IsA("Model") then
+                    for _, part in ipairs(v:GetChildren()) do
+                        if part:IsA("BasePart") then
+                            part.CanTouch = false
+                        end
+                    end
+                end
+            end)
+        end
+        WindUI:Notify("防Jeff杀手", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+EvasionTab:Toggle({
+    Title = "反 Halt",
+    Default = false,
+    Callback = function(Value)
+        local entityModules = game:GetService("ReplicatedStorage"):FindFirstChild("ClientModules")
+        if entityModules then
+            local module = entityModules.EntityModules:FindFirstChild("Shade") or entityModules.EntityModules:FindFirstChild("_Shade")
+            if module then
+                module.Name = Value and "_Shade" or "Shade"
+            end
+        end
+        WindUI:Notify("反 Halt", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+EvasionTab:Toggle({
+    Title = "反 Screech",
+    Default = false,
+    Callback = function(Value)
+        local mainGame = LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game
+        if mainGame then
+            local module = mainGame:FindFirstChild("Screech", true) or mainGame:FindFirstChild("_Screech", true)
+            if module then
+                module.Name = Value and "_Screech" or "Screech"
+            end
+        end
+        WindUI:Notify("反 Screech", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+EvasionTab:Toggle({
+    Title = "反 Dupe 假门",
+    Default = false,
+    Callback = function(Value)
+        for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
+            for _, dupeRoom in pairs(room:GetChildren()) do
+                if dupeRoom:GetAttribute("LoadModule") == "DupeRoom" then
+                    local doorFake = dupeRoom:FindFirstChild("DoorFake")
+                    if doorFake then
+                        local hidden = doorFake:FindFirstChild("Hidden")
+                        if hidden then hidden.CanTouch = not Value end
+                        local lock = doorFake:FindFirstChild("Lock")
+                        if lock then
+                            local prompt = lock:FindFirstChildOfClass("ProximityPrompt")
+                            if prompt then prompt.Enabled = not Value end
+                        end
+                    end
+                end
+            end
+        end
+        WindUI:Notify("反 Dupe", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+EvasionTab:Toggle({
+    Title = "反 Eyes / Lookman",
+    Default = false,
+    Callback = function(Value)
+        WindUI:Notify("反 Eyes", Value and "已启用，看向眼睛不会受伤" or "已禁用", 2)
+    end
+})
+
+EvasionTab:Toggle({
+    Title = "反 Snare 地刺",
+    Default = false,
+    Callback = function(Value)
+        for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
+            if room:FindFirstChild("Assets") then
+                for _, snare in pairs(room.Assets:GetChildren()) do
+                    if snare.Name == "Snare" then
+                        local hitbox = snare:FindFirstChild("Hitbox")
+                        if hitbox then hitbox.CanTouch = not Value end
+                    end
+                end
+            end
+        end
+        WindUI:Notify("反 Snare", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+EvasionTab:Toggle({
+    Title = "反 Seek 障碍物",
+    Default = false,
+    Callback = function(Value)
+        for _, v in pairs(workspace.CurrentRooms:GetDescendants()) do
+            if v.Name == "ChandelierObstruction" or v.Name == "Seek_Arm" then
+                for _, part in pairs(v:GetChildren()) do
+                    if part:IsA("BasePart") then part.CanTouch = not Value end
+                end
+            end
+        end
+        WindUI:Notify("反 Seek 障碍物", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+EvasionTab:Toggle({
+    Title = "反 A90",
+    Default = false,
+    Callback = function(Value)
+        local mainGame = LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game
+        if mainGame then
+            local module = mainGame:FindFirstChild("A90", true) or mainGame:FindFirstChild("_A90", true)
+            if module then
+                module.Name = Value and "_A90" or "A90"
+            end
+        end
+        WindUI:Notify("反 A90", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+EvasionTab:Toggle({
+    Title = "反 Dread",
+    Default = false,
+    Callback = function(Value)
+        local modules = LocalPlayer.PlayerGui.MainUI.Initiator.Main_Game.RemoteListener.Modules
+        if modules then
+            local dread = modules:FindFirstChild("Dread") or modules:FindFirstChild("_Dread")
+            if dread then
+                dread.Name = Value and "_Dread" or "Dread"
+            end
+        end
+        WindUI:Notify("反 Dread", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+EvasionTab:Toggle({
+    Title = "反 Figure 听觉",
+    Default = false,
+    Callback = function(Value)
+        local remoteFolder = game:GetService("ReplicatedStorage"):FindFirstChild("RemotesFolder") or game:GetService("ReplicatedStorage"):FindFirstChild("EntityInfo")
+        if remoteFolder then
+            remoteFolder.Crouch:FireServer(Value)
+        end
+        WindUI:Notify("反 Figure 听觉", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+EvasionTab:Toggle({
+    Title = "反 Lookman",
+    Default = false,
+    Callback = function(Value)
+        WindUI:Notify("反 Lookman", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+EvasionTab:Toggle({
+    Title = "反 Giggle",
+    Default = false,
+    Callback = function(Value)
+        for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
+            for _, giggle in pairs(room:GetChildren()) do
+                if giggle.Name == "GiggleCeiling" then
+                    local hitbox = giggle:FindFirstChild("Hitbox")
+                    if hitbox then hitbox.CanTouch = not Value end
+                end
+            end
+        end
+        WindUI:Notify("反 Giggle", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+EvasionTab:Toggle({
+    Title = "反 Gloom Egg",
+    Default = false,
+    Callback = function(Value)
+        for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
+            for _, gloomPile in pairs(room:GetChildren()) do
+                if gloomPile.Name == "GloomPile" then
+                    for _, gloomEgg in pairs(gloomPile:GetDescendants()) do
+                        if gloomEgg.Name == "Egg" then
+                            gloomEgg.CanTouch = not Value
+                        end
+                    end
+                end
+            end
+        end
+        WindUI:Notify("反 Gloom Egg", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+EvasionTab:Toggle({
+    Title = "反桥梁坠落",
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
+                if room:FindFirstChild("Parts") then
+                    for _, bridge in pairs(room.Parts:GetChildren()) do
+                        if bridge.Name == "Bridge" then
+                            for _, barrier in pairs(bridge:GetChildren()) do
+                                if barrier.Name == "PlayerBarrier" and barrier.Size.Y == 2.75 then
+                                    local clone = barrier:Clone()
+                                    clone.Name = "AntiBridge"
+                                    clone.Size = Vector3.new(barrier.Size.X, barrier.Size.Y, 30)
+                                    clone.CFrame = barrier.CFrame * CFrame.new(0, 0, -5)
+                                    clone.Transparency = 0
+                                    clone.Anchored = true
+                                    clone.CanCollide = true
+                                    clone.Parent = bridge
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        else
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v.Name == "AntiBridge" then v:Destroy() end            end
+        end
+        WindUI:Notify("反桥梁坠落", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+EvasionTab:Toggle({
+    Title = "反真空",
+    Default = false,
+    Callback = function(Value)
+        for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
+            for _, obj in pairs(room:GetChildren()) do
+                if obj.Name == "SideroomSpace" then
+                    local collision = obj:FindFirstChild("Collision")
+                    if collision then
+                        collision.CanTouch = not Value
+                        collision.CanCollide = Value
+                    end
+                end
+            end
+        end
+        WindUI:Notify("反真空", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+EvasionTab:Toggle({
+    Title = "反干扰",
+    Default = false,
+    Callback = function(Value)
+        local mainTrack = game:GetService("SoundService"):FindFirstChild("Main")
+        if mainTrack then
+            local jamming = mainTrack:FindFirstChild("Jamming")
+            if jamming then
+                jamming.Enabled = not Value
+            end
+        end
+        local mainUI = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("MainUI")
+        if mainUI then
+            local healthGui = mainUI:FindFirstChild("Initiator") and mainUI.Initiator:FindFirstChild("Main_Game") and mainUI.Initiator.Main_Game:FindFirstChild("Health")
+            if healthGui then
+                local jamSound = healthGui:FindFirstChild("Jam")
+                if jamSound then
+                    jamSound.Playing = not Value
+                end
+            end
+        end
+        WindUI:Notify("反干扰", Value and "已启用" or "已禁用", 2)
+    end
+})
+
 Y:Toggle({
     Title = "始终可跳跃",
     Default = false,
@@ -668,51 +992,69 @@ Y:Slider({
     end
 })
 
-local espMode = "Original"
-
-SettingsTab:Dropdown({
-    Title = "ESP模式选择",
-    Values = {"原版ESP", "3D Box ESP"},
-    Value = "原版ESP",
-    Callback = function(selected)
-        playClickSound()
-        if selected == "原版ESP" then
-            espMode = "Original"
-            if Box3DSettings.connection then
-                Box3DSettings.connection:Disconnect()
-                Box3DSettings.connection = nil
-            end
-            if Box3DSettings.removedConnection then
-                Box3DSettings.removedConnection:Disconnect()
-                Box3DSettings.removedConnection = nil
-            end
-            cleanup3DBoxes()
-            checkAndStartESP()
-            WindUI:Notify("ESP模式", "已切换到原版ESP", 2)
-        else
-            espMode = "3DBox"
-            if espConnection then
-                espConnection:Disconnect()
-                espConnection = nil
-            end
-            for obj, _ in pairs(ESPObjects) do
-                RemoveESP(obj)
-            end
-            if not Box3DSettings.connection then
-                Box3DSettings.connection = RunService.RenderStepped:Connect(update3DBoxes)
-            end
-            if not Box3DSettings.removedConnection then
-                Box3DSettings.removedConnection = workspace.DescendantRemoving:Connect(function(descendant)
-                    if Box3DDrawings[descendant] then
-                        for _, line in pairs(Box3DDrawings[descendant].lines) do
-                            line:Remove()
-                        end
-                        Box3DDrawings[descendant] = nil
-                    end
-                end)
-            end
-            WindUI:Notify("ESP模式", "已切换到3D Box ESP", 2)
+Y:Toggle({
+    Title = "防卡顿",
+    Default = false,
+    Callback = function(Value)
+        local Modifiers = workspace:FindFirstChild("Modifiers")
+        if Modifiers and not Modifiers:FindFirstChild("Jammin") then
+            return
         end
+
+        local mainTrack = game["SoundService"]:FindFirstChild("Main")
+        if mainTrack then
+            local jamming = mainTrack:FindFirstChild("Jamming")
+            if jamming then
+                jamming.Enabled = not Value
+            end
+        end
+
+        local mainUI = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("MainUI")
+        if mainUI then
+            local healthGui = mainUI:FindFirstChild("Initiator") and 
+                             mainUI.Initiator:FindFirstChild("Main_Game") and 
+                             mainUI.Initiator.Main_Game:FindFirstChild("Health")
+            if healthGui then
+                local jamSound = healthGui:FindFirstChild("Jam")
+                if jamSound then
+                    jamSound.Playing = not Value
+                end
+            end
+        end
+        WindUI:Notify("防卡顿", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+Y:Toggle({
+    Title = "倒立",
+    Default = false,
+    Callback = function(Value)
+        local function setUpsideDown(state)
+            local char = LocalPlayer.Character
+            if not char then return end
+            local collision = char:FindFirstChild("Collision")
+            if not collision then return end
+            if state then
+                local rotation = collision.Rotation
+                collision.Rotation = Vector3.new(rotation.X, rotation.Y, -90)
+            else
+                local rotation = collision.Rotation
+                collision.Rotation = Vector3.new(rotation.X, rotation.Y, 90)
+            end
+        end
+        if _G.UpsideDownConn then _G.UpsideDownConn:Disconnect() end
+        setUpsideDown(Value)
+        if Value then
+            _G.UpsideDownConn = LocalPlayer.CharacterAdded:Connect(function(newChar)
+                task.wait(0.5)
+                local collision = newChar:FindFirstChild("Collision")
+                if collision then
+                    local rotation = collision.Rotation
+                    collision.Rotation = Vector3.new(rotation.X, rotation.Y, -90)
+                end
+            end)
+        end
+        WindUI:Notify("倒立", Value and "已启用" or "已禁用", 2)
     end
 })
 
@@ -722,9 +1064,7 @@ PlayerTab:Toggle({
     Callback = function(state)
         playClickSound()
         espActive.Player = state
-        if espMode == "Original" then
-            checkAndStartESP()
-        end
+        checkAndStartESP()
     end
 })
 
@@ -734,9 +1074,7 @@ VisualTab:Toggle({
     Callback = function(state)
         playClickSound()
         showDistance = state
-        if espMode == "Original" then
-            UpdateAllESP()
-        end
+        UpdateAllESP()
     end
 })
 
@@ -746,9 +1084,7 @@ VisualTab:Slider({
     Callback = function(v)
         playClickSound()
         espTextSize = v
-        if espMode == "Original" then
-            UpdateAllESP()
-        end
+        UpdateAllESP()
     end
 })
 
@@ -758,9 +1094,7 @@ VisualTab:Slider({
     Callback = function(v)
         playClickSound()
         espFillTransparency = v
-        if espMode == "Original" then
-            UpdateAllESP()
-        end
+        UpdateAllESP()
     end
 })
 
@@ -770,9 +1104,7 @@ VisualTab:Slider({
     Callback = function(v)
         playClickSound()
         espOutlineTransparency = v
-        if espMode == "Original" then
-            UpdateAllESP()
-        end
+        UpdateAllESP()
     end
 })
 
@@ -782,9 +1114,7 @@ VisualTab:Slider({
     Callback = function(v)
         playClickSound()
         scanInterval = v
-        if espMode == "Original" then
-            UpdateAllESP()
-        end
+        UpdateAllESP()
     end
 })
 
@@ -833,9 +1163,7 @@ for _, name in ipairs(monsters) do
         Callback = function(state)
             playClickSound()
             espActive[name] = state
-            if espMode == "Original" then
-                checkAndStartESP()
-            end
+            checkAndStartESP()
         end
     })
 end
@@ -848,9 +1176,7 @@ for _, name in ipairs(items) do
             Callback = function(state)
                 playClickSound()
                 espActive[name] = state
-                if espMode == "Original" then
-                    checkAndStartESP()
-                end
+                checkAndStartESP()
             end
         })
     end
@@ -862,9 +1188,7 @@ ItemTab:Toggle({
     Callback = function(state)
         playClickSound()
         espActive.GoldPile = state
-        if espMode == "Original" then
-            checkAndStartESP()
-        end
+        checkAndStartESP()
     end
 })
 
@@ -875,9 +1199,7 @@ for objName, displayName in pairs(worldItems) do
         Callback = function(state)
             playClickSound()
             espActive[objName] = state
-            if espMode == "Original" then
-                checkAndStartESP()
-            end
+            checkAndStartESP()
         end
     })
 end
@@ -888,11 +1210,9 @@ ConfigSection:Colorpicker({
     Callback = function(color)
         playClickSound()
         colors.player = color
-        if espMode == "Original" then
-            for obj, data in pairs(ESPObjects) do
-                if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj ~= LocalPlayer.Character then
-                    if data.highlight then pcall(function() data.highlight.FillColor = color end) end
-                end
+        for obj, data in pairs(ESPObjects) do
+            if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj ~= LocalPlayer.Character then
+                if data.highlight then pcall(function() data.highlight.FillColor = color end) end
             end
         end
     end
@@ -904,14 +1224,10 @@ ConfigSection:Colorpicker({
     Callback = function(color)
         playClickSound()
         colors.monster = color
-        if espMode == "Original" then
-            for obj, data in pairs(ESPObjects) do
-                if categoryMap[obj.Name] == "monster" and data.highlight then
-                    pcall(function() data.highlight.FillColor = color end)
-                end
+        for obj, data in pairs(ESPObjects) do
+            if categoryMap[obj.Name] == "monster" and data.highlight then
+                pcall(function() data.highlight.FillColor = color end)
             end
-        elseif espMode == "3DBox" then
-            Box3DSettings.KillerColor = color
         end
     end
 })
@@ -922,11 +1238,9 @@ ConfigSection:Colorpicker({
     Callback = function(color)
         playClickSound()
         colors.item = color
-        if espMode == "Original" then
-            for obj, data in pairs(ESPObjects) do
-                if categoryMap[obj.Name] == "item" and data.highlight then
-                    pcall(function() data.highlight.FillColor = color end)
-                end
+        for obj, data in pairs(ESPObjects) do
+            if categoryMap[obj.Name] == "item" and data.highlight then
+                pcall(function() data.highlight.FillColor = color end)
             end
         end
     end
@@ -938,11 +1252,9 @@ ConfigSection:Colorpicker({
     Callback = function(color)
         playClickSound()
         colors.world = color
-        if espMode == "Original" then
-            for obj, data in pairs(ESPObjects) do
-                if categoryMap[obj.Name] == "world" and data.highlight then
-                    pcall(function() data.highlight.FillColor = color end)
-                end
+        for obj, data in pairs(ESPObjects) do
+            if categoryMap[obj.Name] == "world" and data.highlight then
+                pcall(function() data.highlight.FillColor = color end)
             end
         end
     end
@@ -954,11 +1266,9 @@ ConfigSection:Colorpicker({
     Callback = function(color)
         playClickSound()
         colors.gold = color
-        if espMode == "Original" then
-            for obj, data in pairs(ESPObjects) do
-                if categoryMap[obj.Name] == "gold" and data.highlight then
-                    pcall(function() data.highlight.FillColor = color end)
-                end
+        for obj, data in pairs(ESPObjects) do
+            if categoryMap[obj.Name] == "gold" and data.highlight then
+                pcall(function() data.highlight.FillColor = color end)
             end
         end
     end
@@ -970,12 +1280,10 @@ ConfigSection:Colorpicker({
     Callback = function(color)
         playClickSound()
         colors.monsterText = color
-        if espMode == "Original" then
-            for obj, data in pairs(ESPObjects) do
-                if categoryMap[obj.Name] == "monster" and data.billboard then
-                    local label = data.billboard:FindFirstChildOfClass("TextLabel")
-                    if label then pcall(function() label.TextColor3 = color end) end
-                end
+        for obj, data in pairs(ESPObjects) do
+            if categoryMap[obj.Name] == "monster" and data.billboard then
+                local label = data.billboard:FindFirstChildOfClass("TextLabel")
+                if label then pcall(function() label.TextColor3 = color end) end
             end
         end
     end
@@ -987,12 +1295,10 @@ ConfigSection:Colorpicker({
     Callback = function(color)
         playClickSound()
         colors.otherText = color
-        if espMode == "Original" then
-            for obj, data in pairs(ESPObjects) do
-                if categoryMap[obj.Name] ~= "monster" and data.billboard then
-                    local label = data.billboard:FindFirstChildOfClass("TextLabel")
-                    if label then pcall(function() label.TextColor3 = color end) end
-                end
+        for obj, data in pairs(ESPObjects) do
+            if categoryMap[obj.Name] ~= "monster" and data.billboard then
+                local label = data.billboard:FindFirstChildOfClass("TextLabel")
+                if label then pcall(function() label.TextColor3 = color end) end
             end
         end
     end
@@ -1045,9 +1351,7 @@ end)
 task.spawn(function()
     while true do
         task.wait(60)
-        if espMode == "Original" then
-            CleanupInvalidESP()
-        end
+        CleanupInvalidESP()
         if lowQualityActive and not lowQualityConn then lowQualityActive = false end
         collectgarbage("collect")
     end
@@ -2271,100 +2575,6 @@ B:Toggle({
     end
 })
 
-Y:Toggle({
-        Title = "防卡顿",
-        Default = false,
-        Callback = function(Value)
-            local Modifiers = workspace:FindFirstChild("Modifiers")
-            if Modifiers and not Modifiers:FindFirstChild("Jammin") then
-                return
-            end
-
-            local mainTrack = game["SoundService"]:FindFirstChild("Main")
-            if mainTrack then
-                local jamming = mainTrack:FindFirstChild("Jamming")
-                if jamming then
-                    jamming.Enabled = not Value
-                end
-            end
-
-            local mainUI = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("MainUI")
-            if mainUI then
-                local healthGui = mainUI:FindFirstChild("Initiator") and 
-                                 mainUI.Initiator:FindFirstChild("Main_Game") and 
-                                 mainUI.Initiator.Main_Game:FindFirstChild("Health")
-                if healthGui then
-                    local jamSound = healthGui:FindFirstChild("Jam")
-                    if jamSound then
-                        jamSound.Playing = not Value
-                    end
-                end
-            end
-        end
-    })
-    
-Y:Toggle({
-        Title = "防香蕉皮",
-        Default = false,
-        Callback = function(Value)
-            local currentRooms = workspace:WaitForChild("CurrentRooms")
-            
-            if getgenv().antiBananaConn then
-                getgenv().antiBananaConn:Disconnect()
-                getgenv().antiBananaConn = nil
-            end
-
-            for _, v in pairs(currentRooms:GetDescendants()) do
-                if v.Name == "BananaPeel" and v:IsA("BasePart") then
-                    v.CanTouch = not Value
-                end
-            end
-
-            if Value then
-                getgenv().antiBananaConn = currentRooms.DescendantAdded:Connect(function(v)
-                    if v.Name == "BananaPeel" and v:IsA("BasePart") then
-                        v.CanTouch = false
-                    end
-                end)
-            end
-        end
-    })
-
-    Y:Toggle({
-        Title = "防Jeff杀手",
-        Default = false,
-        Callback = function(Value)
-            local currentRooms = workspace:WaitForChild("CurrentRooms")
-            
-            if getgenv().antiJeffConn then
-                getgenv().antiJeffConn:Disconnect()
-                getgenv().antiJeffConn = nil
-            end
-
-            for _, model in pairs(currentRooms:GetDescendants()) do
-                if model.Name == "JeffTheKiller" and model:IsA("Model") then
-                    for _, part in ipairs(model:GetChildren()) do
-                        if part:IsA("BasePart") then
-                            part.CanTouch = not Value
-                        end
-                    end
-                end
-            end
-
-            if Value then
-                getgenv().antiJeffConn = currentRooms.DescendantAdded:Connect(function(v)
-                    if v.Name == "JeffTheKiller" and v:IsA("Model") then
-                        for _, part in ipairs(v:GetChildren()) do
-                            if part:IsA("BasePart") then
-                                part.CanTouch = false
-                            end
-                        end
-                    end
-                end)
-            end
-        end
-    })
-    
 B:Toggle({
     Title = "自动治疗",
     Default = false,
@@ -2569,8 +2779,6 @@ B:Toggle({
     end
 })
 
-local LocalPlayer = game.Players.LocalPlayer
-
 Y:Toggle({
     Title = "处于眩晕状态",
     Default = false,
@@ -2606,56 +2814,6 @@ local SpeedBoostSlider = m:Slider({
         WindUI:Notify("速度增益", "当前增益: " .. value, 1)
     end
 })
-
-local upsideDownActive = false
-local upsideDownConn = nil
-
-Y:Toggle({
-    Title = "倒立",
-    Default = false,
-    Callback = function(Value)
-        upsideDownActive = Value
-        
-        local function setUpsideDown(state)
-            local char = LocalPlayer.Character
-            if not char then return end
-            
-            local collision = char:FindFirstChild("Collision")
-            if not collision then return end
-            
-            if state then
-                local rotation = collision.Rotation
-                collision.Rotation = Vector3.new(rotation.X, rotation.Y, -90)
-            else
-                local rotation = collision.Rotation
-                collision.Rotation = Vector3.new(rotation.X, rotation.Y, 90)
-            end
-        end
-        
-        if upsideDownConn then
-            upsideDownConn:Disconnect()
-            upsideDownConn = nil
-        end
-        
-        setUpsideDown(Value)
-        
-        if Value then
-            upsideDownConn = LocalPlayer.CharacterAdded:Connect(function(newChar)
-                task.wait(0.5)
-                local collision = newChar:FindFirstChild("Collision")
-                if collision then
-                    local rotation = collision.Rotation
-                    collision.Rotation = Vector3.new(rotation.X, rotation.Y, -90)
-                end
-            end)
-        end
-        
-        WindUI:Notify("倒立", Value and "已启用" or "已禁用", 2)
-    end
-})
-
-local LocalPlayer = game.Players.LocalPlayer
-local latestRoom = game:GetService("ReplicatedStorage"):WaitForChild("GameData"):WaitForChild("LatestRoom")
 
 m:Toggle({
     Title = "Figure无敌模式",
@@ -2720,16 +2878,14 @@ m:Toggle({
     end
 })
 
-local LocalPlayer = game.Players.LocalPlayer
-local character = LocalPlayer.Character
-local humanoid = character and character:FindFirstChild("Humanoid")
-local collision = character and character:FindFirstChild("Collision")
-local remotesFolder = game:GetService("ReplicatedStorage"):FindFirstChild("RemotesFolder") or game:GetService("ReplicatedStorage"):FindFirstChild("EntityInfo")
-
 Y:Toggle({
     Title = "上帝模式",
     Default = false,
     Callback = function(value)
+        local character = LocalPlayer.Character
+        local humanoid = character and character:FindFirstChild("Humanoid")
+        local collision = character and character:FindFirstChild("Collision")
+        
         local function enableGodmode()
             if humanoid and collision then
                 humanoid.HipHeight = 3.01
@@ -2755,9 +2911,15 @@ Y:Toggle({
             if not _G.GodmodeConn then
                 _G.GodmodeConn = LocalPlayer.CharacterAdded:Connect(function(newChar)
                     task.wait(0.5)
-                    humanoid = newChar:FindFirstChild("Humanoid")
-                    collision = newChar:FindFirstChild("Collision")
-                    enableGodmode()
+                    local newHumanoid = newChar:FindFirstChild("Humanoid")
+                    local newCollision = newChar:FindFirstChild("Collision")
+                    if newHumanoid and newCollision then
+                        newHumanoid.HipHeight = 3.01
+                        task.wait()
+                        newCollision.Position = newCollision.Position - Vector3.new(0, 8, 0)
+                        task.wait()
+                        newHumanoid.HipHeight = 3
+                    end
                 end)
             end
             WindUI:Notify("上帝模式", "已启用，你将免疫所有伤害", 3)
@@ -2776,6 +2938,8 @@ Y:Toggle({
     Title = "无限复活",
     Default = false,
     Callback = function(value)
+        local remotesFolder = game:GetService("ReplicatedStorage"):FindFirstChild("RemotesFolder") or game:GetService("ReplicatedStorage"):FindFirstChild("EntityInfo")
+        
         local function revive()
             if remotesFolder and remotesFolder:FindFirstChild("Revive") then
                 remotesFolder.Revive:FireServer()
@@ -2809,292 +2973,4 @@ Y:Toggle({
     end
 })
 
-local Box3DSettings = {
-    Enabled = false,
-    ShowSurvivorBoxes = true,
-    ShowKillerBoxes = true,
-    SurvivorColor = Color3.fromRGB(0, 255, 255),
-    KillerColor = Color3.fromRGB(255, 0, 0),
-    UseTeamColor = true,
-    Thickness = 1,
-    Transparency = 0.7,
-    BoxHeightOffset = 0.5,
-    SurvivorBoxScale = 1.0,
-    KillerBoxScale = 1.2,
-    LeftWidthScale = 1.0,
-    RightWidthScale = 1.0,
-    FrontExtend = 1.0,
-    BackExtend = 1.0,
-    FrontExtendMultiplier = 1.0,
-    BackExtendMultiplier = 1.0,
-    HeadOffset = 1.5,
-    FootOffset = 0.2,
-    BoxHeightScale = 1.0,
-    VerticalOffset = 0,
-    connection = nil,
-    removedConnection = nil
-}
-
-local Box3DDrawings = {}
-
-local function create3DBoxDrawing()
-    local drawing = { lines = {}, visible = false }
-    for i = 1, 12 do
-        drawing.lines[i] = Drawing.new("Line")
-        drawing.lines[i].Thickness = Box3DSettings.Thickness
-        drawing.lines[i].Transparency = Box3DSettings.Transparency
-        drawing.lines[i].Visible = false
-    end
-    return drawing
-end
-
-local function calculateModelBoundingBox(model, isKiller)
-    local rootPart = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso") or model:FindFirstChild("UpperTorso")
-    local head = model:FindFirstChild("Head")
-    
-    if rootPart then
-        local size = rootPart.Size
-        local cframe = rootPart.CFrame
-        local scale = isKiller and Box3DSettings.KillerBoxScale or Box3DSettings.SurvivorBoxScale
-        size = size * scale
-        
-        local baseHeight = 5
-        if head then
-            baseHeight = (head.Position.Y - rootPart.Position.Y) * 2
-        end
-        local height = (baseHeight + Box3DSettings.HeadOffset + Box3DSettings.FootOffset) * Box3DSettings.BoxHeightScale
-        
-        local leftOffset = (size.X/2) * Box3DSettings.LeftWidthScale
-        local rightOffset = (size.X/2) * Box3DSettings.RightWidthScale
-        local frontOffset = (size.Z/2) * Box3DSettings.FrontExtend * Box3DSettings.FrontExtendMultiplier
-        local backOffset = (size.Z/2) * Box3DSettings.BackExtend * Box3DSettings.BackExtendMultiplier
-        
-        local min = Vector3.new(
-            cframe.Position.X - leftOffset,
-            cframe.Position.Y - height/2 + Box3DSettings.FootOffset,
-            cframe.Position.Z - backOffset
-        )
-        local max = Vector3.new(
-            cframe.Position.X + rightOffset,
-            cframe.Position.Y + height/2 + Box3DSettings.HeadOffset,
-            cframe.Position.Z + frontOffset
-        )
-        
-        min = Vector3.new(min.X, min.Y + Box3DSettings.BoxHeightOffset + Box3DSettings.VerticalOffset, min.Z)
-        max = Vector3.new(max.X, max.Y + Box3DSettings.BoxHeightOffset + Box3DSettings.VerticalOffset, max.Z)
-        
-        return min, max
-    else
-        local min = Vector3.new(math.huge, math.huge, math.huge)
-        local max = Vector3.new(-math.huge, -math.huge, -math.huge)
-        
-        for _, part in ipairs(model:GetDescendants()) do
-            if part:IsA("BasePart") then
-                local cframe = part.CFrame
-                local size = part.Size
-                local scale = isKiller and Box3DSettings.KillerBoxScale or Box3DSettings.SurvivorBoxScale
-                size = size * scale
-                
-                local leftOffset = (size.X/2) * Box3DSettings.LeftWidthScale
-                local rightOffset = (size.X/2) * Box3DSettings.RightWidthScale
-                local frontOffset = (size.Z/2) * Box3DSettings.FrontExtend * Box3DSettings.FrontExtendMultiplier
-                local backOffset = (size.Z/2) * Box3DSettings.BackExtend * Box3DSettings.BackExtendMultiplier
-                
-                local vertices = {
-                    cframe * Vector3.new(rightOffset, (size.Y/2) * Box3DSettings.BoxHeightScale, frontOffset),
-                    cframe * Vector3.new(-leftOffset, (size.Y/2) * Box3DSettings.BoxHeightScale, frontOffset),
-                    cframe * Vector3.new(rightOffset, (-size.Y/2) * Box3DSettings.BoxHeightScale, frontOffset),
-                    cframe * Vector3.new(-leftOffset, (-size.Y/2) * Box3DSettings.BoxHeightScale, frontOffset),
-                    cframe * Vector3.new(rightOffset, (size.Y/2) * Box3DSettings.BoxHeightScale, -backOffset),
-                    cframe * Vector3.new(-leftOffset, (size.Y/2) * Box3DSettings.BoxHeightScale, -backOffset),
-                    cframe * Vector3.new(rightOffset, (-size.Y/2) * Box3DSettings.BoxHeightScale, -backOffset),
-                    cframe * Vector3.new(-leftOffset, (-size.Y/2) * Box3DSettings.BoxHeightScale, -backOffset)
-                }
-                
-                for _, vertex in ipairs(vertices) do
-                    min = Vector3.new(math.min(min.X, vertex.X), math.min(min.Y, vertex.Y), math.min(min.Z, vertex.Z))
-                    max = Vector3.new(math.max(max.X, vertex.X), math.max(max.Y, vertex.Y), math.max(max.Z, vertex.Z))
-                end
-            end
-        end
-        
-        min = Vector3.new(min.X, min.Y + Box3DSettings.BoxHeightOffset + Box3DSettings.VerticalOffset, min.Z)
-        max = Vector3.new(max.X, max.Y + Box3DSettings.BoxHeightOffset + Box3DSettings.VerticalOffset, max.Z)
-        
-        return min, max
-    end
-end
-
-local function updateSingle3DBox(model, drawing, color, isKiller)
-    local camera = workspace.CurrentCamera
-    local min, max = calculateModelBoundingBox(model, isKiller)
-    
-    local vertices = {
-        Vector3.new(max.X, max.Y, max.Z),
-        Vector3.new(min.X, max.Y, max.Z),
-        Vector3.new(max.X, min.Y, max.Z),
-        Vector3.new(min.X, min.Y, max.Z),
-        Vector3.new(max.X, max.Y, min.Z),
-        Vector3.new(min.X, max.Y, min.Z),
-        Vector3.new(max.X, min.Y, min.Z),
-        Vector3.new(min.X, min.Y, min.Z)
-    }
-    
-    local screenVertices = {}
-    local anyVisible = false
-    for i, vertex in ipairs(vertices) do
-        local screenPos, onScreen = camera:WorldToViewportPoint(vertex)
-        screenVertices[i] = Vector2.new(screenPos.X, screenPos.Y)
-        if onScreen then anyVisible = true end
-    end
-    
-    for _, line in pairs(drawing.lines) do
-        line.Color = color
-        line.Thickness = Box3DSettings.Thickness
-        line.Transparency = Box3DSettings.Transparency
-    end
-    
-    if anyVisible then
-        drawing.lines[1].From, drawing.lines[1].To = screenVertices[5], screenVertices[6]
-        drawing.lines[2].From, drawing.lines[2].To = screenVertices[6], screenVertices[8]
-        drawing.lines[3].From, drawing.lines[3].To = screenVertices[8], screenVertices[7]
-        drawing.lines[4].From, drawing.lines[4].To = screenVertices[7], screenVertices[5]
-        drawing.lines[5].From, drawing.lines[5].To = screenVertices[1], screenVertices[2]
-        drawing.lines[6].From, drawing.lines[6].To = screenVertices[2], screenVertices[4]
-        drawing.lines[7].From, drawing.lines[7].To = screenVertices[4], screenVertices[3]
-        drawing.lines[8].From, drawing.lines[8].To = screenVertices[3], screenVertices[1]
-        drawing.lines[9].From, drawing.lines[9].To = screenVertices[1], screenVertices[5]
-        drawing.lines[10].From, drawing.lines[10].To = screenVertices[2], screenVertices[6]
-        drawing.lines[11].From, drawing.lines[11].To = screenVertices[3], screenVertices[7]
-        drawing.lines[12].From, drawing.lines[12].To = screenVertices[4], screenVertices[8]
-        
-        for _, line in pairs(drawing.lines) do
-            line.Visible = true
-        end
-        drawing.visible = true
-    else
-        if drawing.visible then
-            for _, line in pairs(drawing.lines) do
-                line.Visible = false
-            end
-            drawing.visible = false
-        end
-    end
-end
-
-local function update3DBoxes()
-    if espMode ~= "3DBox" then return end
-    for obj, drawing in pairs(Box3DDrawings) do
-        if not obj or not obj.Parent then
-            for _, line in pairs(drawing.lines) do
-                line:Remove()
-            end
-            Box3DDrawings[obj] = nil
-        else
-            for _, line in pairs(drawing.lines) do
-                line.Visible = false
-            end
-            drawing.visible = false
-        end
-    end
-    
-    if Box3DSettings.ShowKillerBoxes then
-        for _, name in ipairs(monsters) do
-            if espActive[name] then
-                for _, entity in ipairs(workspace:GetDescendants()) do
-                    if entity.Name == name and entity:IsA("Model") then
-                        if not Box3DDrawings[entity] then
-                            Box3DDrawings[entity] = create3DBoxDrawing()
-                        end
-                        updateSingle3DBox(entity, Box3DDrawings[entity], Box3DSettings.KillerColor, true)
-                    end
-                end
-            end
-        end
-    end
-end
-
-local function cleanup3DBoxes()
-    for _, drawing in pairs(Box3DDrawings) do
-        if drawing then
-            for _, line in pairs(drawing.lines) do
-                line:Remove()
-            end
-        end
-    end
-    Box3DDrawings = {}
-end
-
-local espMode = "Original"
-
-SettingsTab:Dropdown({
-    Title = "ESP模式选择",
-    Values = {"原版ESP", "3D Box ESP"},
-    Value = "原版ESP",
-    Callback = function(selected)
-        playClickSound()
-        if selected == "原版ESP" then
-            espMode = "Original"
-            if Box3DSettings.connection then
-                Box3DSettings.connection:Disconnect()
-                Box3DSettings.connection = nil
-            end
-            if Box3DSettings.removedConnection then
-                Box3DSettings.removedConnection:Disconnect()
-                Box3DSettings.removedConnection = nil
-            end
-            cleanup3DBoxes()
-            checkAndStartESP()
-            WindUI:Notify("ESP模式", "已切换到原版ESP", 2)
-        else
-            espMode = "3DBox"
-            if espConnection then
-                espConnection:Disconnect()
-                espConnection = nil
-            end
-            for obj, _ in pairs(ESPObjects) do
-                RemoveESP(obj)
-            end
-            if not Box3DSettings.connection then
-                Box3DSettings.connection = RunService.RenderStepped:Connect(update3DBoxes)
-            end
-            if not Box3DSettings.removedConnection then
-                Box3DSettings.removedConnection = workspace.DescendantRemoving:Connect(function(descendant)
-                    if Box3DDrawings[descendant] then
-                        for _, line in pairs(Box3DDrawings[descendant].lines) do
-                            line:Remove()
-                        end
-                        Box3DDrawings[descendant] = nil
-                    end
-                end)
-            end
-            WindUI:Notify("ESP模式", "已切换到3D Box ESP", 2)
-        end
-    end
-})
-
-VisualTab:Toggle({
-    Title = "3D方框透明度",
-    Default = false,
-    Callback = function(state)
-        playClickSound()
-        if state then
-            Box3DSettings.Transparency = 0.5
-        else
-            Box3DSettings.Transparency = 0.7
-        end
-    end
-})
-
-VisualTab:Toggle({
-    Title = "3D方框厚度",
-    Default = false,
-    Callback = function(state)
-        playClickSound()
-        if state then
-            Box3DSettings.Thickness = 2
-        else
-            Box3DSettings.Thickness = 1
-        end
-    end
-})
+WindUI:Notify("脚本已加载", "哨兵脚本", 3)
