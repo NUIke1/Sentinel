@@ -609,7 +609,7 @@ NotifySubTab:Dropdown({
     end
 })
 
-MovementTab:Toggle({
+Y:Toggle({
     Title = "始终可跳跃",
     Default = false,
     Tooltip = "让你随时可以跳跃",
@@ -629,7 +629,7 @@ MovementTab:Toggle({
     end
 })
 
-MovementTab:Toggle({
+Y:Toggle({
     Title = "第三人称",
     Default = false,
     Callback = function(state)
@@ -638,7 +638,7 @@ MovementTab:Toggle({
     end
 })
 
-MovementTab:Slider({
+Y:Slider({
     Title = "第三人称偏移X",
     Value = { Min = -10, Max = 10, Default = 0 },
     Callback = function(v)
@@ -647,7 +647,7 @@ MovementTab:Slider({
     end
 })
 
-MovementTab:Slider({
+Y:Slider({
     Title = "第三人称偏移Y",
     Value = { Min = -10, Max = 10, Default = 0 },
     Callback = function(v)
@@ -656,7 +656,7 @@ MovementTab:Slider({
     end
 })
 
-MovementTab:Slider({
+Y:Slider({
     Title = "第三人称偏移Z",
     Value = { Min = -10, Max = 10, Default = 5 },
     Callback = function(v)
@@ -2197,7 +2197,7 @@ local Oxygenslider = Y:Slider({
     end
 })
 
-local SpeedBoostSlider = m:Slider({
+local SpeedBoostSlider = Y:Slider({
     Title = "速度增益(修改为5最合适)",
     Value = { Min = 0, Max = 10, Default = 0 },
     Callback = function(value)
@@ -2205,7 +2205,7 @@ local SpeedBoostSlider = m:Slider({
     end
 })
 
-m:Toggle({
+Y:Toggle({
         Title = "防卡顿",
         Default = false,
         Callback = function(Value)
@@ -2237,7 +2237,7 @@ m:Toggle({
         end
     })
     
-m:Toggle({
+Y:Toggle({
         Title = "防香蕉皮",
         Default = false,
         Callback = function(Value)
@@ -2264,7 +2264,7 @@ m:Toggle({
         end
     })
 
-    m:Toggle({
+    Y:Toggle({
         Title = "防Jeff杀手",
         Default = false,
         Callback = function(Value)
@@ -2299,7 +2299,7 @@ m:Toggle({
         end
     })
     
-m:Toggle({
+Y:Toggle({
     Title = "允许跳跃",
     Default = false,
     Callback = function(Value)
