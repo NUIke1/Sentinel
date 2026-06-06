@@ -157,7 +157,7 @@ local MovementSection = Window:Section({ Title = "娱乐", Opened = true })
 local Y = MovementSection:Tab({ Title = "娱乐", Icon = "user" })
 
 local M = Window:Section({ Title = "主要", Opened = true })
-local m = M:Tab({ Title = "Main", Icon = "user" })
+local m = M:Tab({ Title = "主要", Icon = "user" })
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -433,7 +433,6 @@ local function ScanPlayers()
 end
 
 local function UpdateAllESP()
-    if espMode ~= "Original" then return end
     scanFrame = scanFrame + 1
     if scanFrame < scanInterval then return end
     scanFrame = 0
@@ -478,7 +477,6 @@ local function StopESP()
 end
 
 local function checkAndStartESP()
-    if espMode ~= "Original" then return end
     local any = false
     for _, v in pairs(espActive) do
         if v then any = true break end
@@ -670,15 +668,62 @@ Y:Slider({
     end
 })
 
+local espMode = "Original"
+
+SettingsTab:Dropdown({
+    Title = "ESP模式选择",
+    Values = {"原版ESP", "3D Box ESP"},
+    Value = "原版ESP",
+    Callback = function(selected)
+        playClickSound()
+        if selected == "原版ESP" then
+            espMode = "Original"
+            if Box3DSettings.connection then
+                Box3DSettings.connection:Disconnect()
+                Box3DSettings.connection = nil
+            end
+            if Box3DSettings.removedConnection then
+                Box3DSettings.removedConnection:Disconnect()
+                Box3DSettings.removedConnection = nil
+            end
+            cleanup3DBoxes()
+            checkAndStartESP()
+            WindUI:Notify("ESP模式", "已切换到原版ESP", 2)
+        else
+            espMode = "3DBox"
+            if espConnection then
+                espConnection:Disconnect()
+                espConnection = nil
+            end
+            for obj, _ in pairs(ESPObjects) do
+                RemoveESP(obj)
+            end
+            if not Box3DSettings.connection then
+                Box3DSettings.connection = RunService.RenderStepped:Connect(update3DBoxes)
+            end
+            if not Box3DSettings.removedConnection then
+                Box3DSettings.removedConnection = workspace.DescendantRemoving:Connect(function(descendant)
+                    if Box3DDrawings[descendant] then
+                        for _, line in pairs(Box3DDrawings[descendant].lines) do
+                            line:Remove()
+                        end
+                        Box3DDrawings[descendant] = nil
+                    end
+                end)
+            end
+            WindUI:Notify("ESP模式", "已切换到3D Box ESP", 2)
+        end
+    end
+})
+
 PlayerTab:Toggle({
     Title = "玩家透视",
     Default = false,
     Callback = function(state)
         playClickSound()
         espActive.Player = state
-        checkAndStartESP()
-        if espMode == "3DBox" and Box3DSettings.connection then
-            Box3DSettings.ShowSurvivorBoxes = state
+        if espMode == "Original" then
+            checkAndStartESP()
         end
     end
 })
@@ -689,7 +734,9 @@ VisualTab:Toggle({
     Callback = function(state)
         playClickSound()
         showDistance = state
-        UpdateAllESP()
+        if espMode == "Original" then
+            UpdateAllESP()
+        end
     end
 })
 
@@ -699,7 +746,9 @@ VisualTab:Slider({
     Callback = function(v)
         playClickSound()
         espTextSize = v
-        UpdateAllESP()
+        if espMode == "Original" then
+            UpdateAllESP()
+        end
     end
 })
 
@@ -709,7 +758,9 @@ VisualTab:Slider({
     Callback = function(v)
         playClickSound()
         espFillTransparency = v
-        UpdateAllESP()
+        if espMode == "Original" then
+            UpdateAllESP()
+        end
     end
 })
 
@@ -719,7 +770,9 @@ VisualTab:Slider({
     Callback = function(v)
         playClickSound()
         espOutlineTransparency = v
-        UpdateAllESP()
+        if espMode == "Original" then
+            UpdateAllESP()
+        end
     end
 })
 
@@ -729,6 +782,9 @@ VisualTab:Slider({
     Callback = function(v)
         playClickSound()
         scanInterval = v
+        if espMode == "Original" then
+            UpdateAllESP()
+        end
     end
 })
 
@@ -777,9 +833,8 @@ for _, name in ipairs(monsters) do
         Callback = function(state)
             playClickSound()
             espActive[name] = state
-            checkAndStartESP()
-            if espMode == "3DBox" and Box3DSettings.connection then
-                Box3DSettings.ShowKillerBoxes = state
+            if espMode == "Original" then
+                checkAndStartESP()
             end
         end
     })
@@ -793,7 +848,9 @@ for _, name in ipairs(items) do
             Callback = function(state)
                 playClickSound()
                 espActive[name] = state
-                checkAndStartESP()
+                if espMode == "Original" then
+                    checkAndStartESP()
+                end
             end
         })
     end
@@ -805,7 +862,9 @@ ItemTab:Toggle({
     Callback = function(state)
         playClickSound()
         espActive.GoldPile = state
-        checkAndStartESP()
+        if espMode == "Original" then
+            checkAndStartESP()
+        end
     end
 })
 
@@ -816,7 +875,9 @@ for objName, displayName in pairs(worldItems) do
         Callback = function(state)
             playClickSound()
             espActive[objName] = state
-            checkAndStartESP()
+            if espMode == "Original" then
+                checkAndStartESP()
+            end
         end
     })
 end
@@ -833,8 +894,6 @@ ConfigSection:Colorpicker({
                     if data.highlight then pcall(function() data.highlight.FillColor = color end) end
                 end
             end
-        elseif espMode == "3DBox" then
-            Box3DSettings.SurvivorColor = color
         end
     end
 })
@@ -986,14 +1045,16 @@ end)
 task.spawn(function()
     while true do
         task.wait(60)
-        CleanupInvalidESP()
+        if espMode == "Original" then
+            CleanupInvalidESP()
+        end
         if lowQualityActive and not lowQualityConn then lowQualityActive = false end
         collectgarbage("collect")
     end
 end)
 
 local TS = Window:Section({ Title = "自动类", Opened = true })
-local B = TS:Tab({ Title = "Main", Icon = "puzzle" })
+local B = TS:Tab({ Title = "自动", Icon = "puzzle" })
 
 local antiAfk = false
 local function startAntiAfk()
@@ -1415,9 +1476,7 @@ B:Dropdown({
     Title = "自动隐藏模式",
     Values = {"Safety", "Close Call"},
     Default = "Safety",
-    Callback = function(Value) 
-        local mode = Value
-    end
+    Callback = function(Value) end
 })
 
 B:Slider({
@@ -2918,7 +2977,8 @@ local function updateSingle3DBox(model, drawing, color, isKiller)
             for _, line in pairs(drawing.lines) do
                 line.Visible = false
             end
-            drawing.visible = false        end
+            drawing.visible = false
+        end
     end
 end
 
@@ -2935,17 +2995,6 @@ local function update3DBoxes()
                 line.Visible = false
             end
             drawing.visible = false
-        end
-    end
-    
-    if espActive.Player and Box3DSettings.ShowSurvivorBoxes then
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character then
-                if not Box3DDrawings[player.Character] then
-                    Box3DDrawings[player.Character] = create3DBoxDrawing()
-                end
-                updateSingle3DBox(player.Character, Box3DDrawings[player.Character], Box3DSettings.SurvivorColor, false)
-            end
         end
     end
     
@@ -3024,15 +3073,6 @@ SettingsTab:Dropdown({
     end
 })
 
-Box3DSettings.ShowSurvivorBoxes = espActive.Player
-Box3DSettings.ShowKillerBoxes = false
-for _, name in ipairs(monsters) do
-    if espActive[name] then
-        Box3DSettings.ShowKillerBoxes = true
-        break
-    end
-end
-
 VisualTab:Toggle({
     Title = "3D方框透明度",
     Default = false,
@@ -3058,5 +3098,3 @@ VisualTab:Toggle({
         end
     end
 })
-
-WindUI:Notify("脚本已加载", "完整版哨兵脚本", 3)
