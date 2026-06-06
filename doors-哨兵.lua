@@ -2181,86 +2181,6 @@ B:Toggle({
 })
 
 Y:Toggle({
-    Title = "处于眩晕状态",
-    Default = false,
-    Callback = function(state)
-        local player = game.Players.LocalPlayer
-        player.Stunned = state
-        if state then
-            WindUI:Notify("眩晕", "已启用", 2)
-        else
-            WindUI:Notify("眩晕", "已禁用", 2)
-        end
-    end
-})
-
-local Oxygenslider = Y:Slider({
-    Title = "氧气值",
-    Value = { Min = 0, Max = 100, Default = 100 },
-    Callback = function(value)
-        game.Players.LocalPlayer.Oxygen = value
-        WindUI:Notify("氧气", "当前氧气值: " .. value, 1)
-    end
-})
-
-local SpeedBoostSlider = Y:Slider({
-    Title = "速度增益(修改为5最合适)",
-    Value = { Min = 0, Max = 10, Default = 0 },
-    Callback = function(value)
-        game.Players.LocalPlayer.SpeedBoost = value
-        WindUI:Notify("速度增益", "当前增益: " .. value, 1)
-    end
-})
-
-local upsideDownActive = false
-local upsideDownConn = nil
-
-Y:Toggle({
-    Title = "倒立",
-    Default = false,
-    Callback = function(Value)
-        upsideDownActive = Value
-        local LocalPlayer = game:GetService("Players").LocalPlayer
-        
-        local function setUpsideDown(state)
-            local char = LocalPlayer.Character
-            if not char then return end
-            
-            local collision = char:FindFirstChild("Collision")
-            if not collision then return end
-            
-            if state then
-                local rotation = collision.Rotation
-                collision.Rotation = Vector3.new(rotation.X, rotation.Y, -90)
-            else
-                local rotation = collision.Rotation
-                collision.Rotation = Vector3.new(rotation.X, rotation.Y, 90)
-            end
-        end
-        
-        if upsideDownConn then
-            upsideDownConn:Disconnect()
-            upsideDownConn = nil
-        end
-        
-        setUpsideDown(Value)
-        
-        if Value then
-            upsideDownConn = LocalPlayer.CharacterAdded:Connect(function(newChar)
-                task.wait(0.5)
-                local collision = newChar:FindFirstChild("Collision")
-                if collision then
-                    local rotation = collision.Rotation
-                    collision.Rotation = Vector3.new(rotation.X, rotation.Y, -90)
-                end
-            end)
-        end
-        
-        WindUI:Notify("倒立", Value and "已启用" or "已禁用", 2)
-    end
-})
-
-Y:Toggle({
         Title = "防卡顿",
         Default = false,
         Callback = function(Value)
@@ -2640,5 +2560,160 @@ Y:Toggle({
         end
         
         WindUI:Notify("倒立", Value and "已启用" or "已禁用", 2)
+    end
+})
+
+local LocalPlayer = game.Players.LocalPlayer
+local latestRoom = game:GetService("ReplicatedStorage"):WaitForChild("GameData"):WaitForChild("LatestRoom")
+
+m:Toggle({
+    Title = "Figure无敌模式",
+    Default = false,
+    Callback = function(value)
+        if value then
+            local function makeFigureInvincible()
+                for _, figure in pairs(workspace.CurrentRooms:GetDescendants()) do
+                    if figure:IsA("Model") and (figure.Name == "FigureRagdoll" or figure.Name == "FigureRig") then
+                        for _, part in pairs(figure:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                if not part:GetAttribute("OriginalCanTouch") then
+                                    part:SetAttribute("OriginalCanTouch", part.CanTouch)
+                                end
+                                if not part:GetAttribute("OriginalCanCollide") then
+                                    part:SetAttribute("OriginalCanCollide", part.CanCollide)
+                                end
+                                part.CanTouch = false
+                                part.CanCollide = false
+                            end
+                        end
+                    end
+                end
+            end
+            
+            makeFigureInvincible()
+            
+            if not _G.FigureGodmodeConn then
+                _G.FigureGodmodeConn = workspace.CurrentRooms.DescendantAdded:Connect(function(child)
+                    if value and (child.Name == "FigureRagdoll" or child.Name == "FigureRig") then
+                        task.wait(0.5)
+                        for _, part in pairs(child:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.CanTouch = false
+                                part.CanCollide = false
+                            end
+                        end
+                    end
+                end)
+            end
+            
+            WindUI:Notify("Figure无敌模式", "Figure将无法攻击你", 2)
+        else
+            if _G.FigureGodmodeConn then
+                _G.FigureGodmodeConn:Disconnect()
+                _G.FigureGodmodeConn = nil
+            end
+            
+            for _, figure in pairs(workspace.CurrentRooms:GetDescendants()) do
+                if figure:IsA("Model") and (figure.Name == "FigureRagdoll" or figure.Name == "FigureRig") then
+                    for _, part in pairs(figure:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanTouch = part:GetAttribute("OriginalCanTouch") or true
+                            part.CanCollide = part:GetAttribute("OriginalCanCollide") or true
+                        end
+                    end
+                end
+            end
+            
+            WindUI:Notify("Figure无敌模式", "已禁用", 2)
+        end
+    end
+})
+
+local LocalPlayer = game.Players.LocalPlayer
+local character = LocalPlayer.Character
+local humanoid = character and character:FindFirstChild("Humanoid")
+local collision = character and character:FindFirstChild("Collision")
+local remotesFolder = game:GetService("ReplicatedStorage"):FindFirstChild("RemotesFolder") or game:GetService("ReplicatedStorage"):FindFirstChild("EntityInfo")
+
+Y:Toggle({
+    Title = "上帝模式",
+    Default = false,
+    Callback = function(value)
+        local function enableGodmode()
+            if humanoid and collision then
+                humanoid.HipHeight = 3.01
+                task.wait()
+                collision.Position = collision.Position - Vector3.new(0, 8, 0)
+                task.wait()
+                humanoid.HipHeight = 3
+            end
+        end
+        
+        local function disableGodmode()
+            if humanoid and collision then
+                humanoid.HipHeight = 3.01
+                task.wait()
+                collision.Position = collision.Position + Vector3.new(0, 8, 0)
+                task.wait()
+                humanoid.HipHeight = 3
+            end
+        end
+        
+        if value then
+            enableGodmode()
+            if not _G.GodmodeConn then
+                _G.GodmodeConn = LocalPlayer.CharacterAdded:Connect(function(newChar)
+                    task.wait(0.5)
+                    humanoid = newChar:FindFirstChild("Humanoid")
+                    collision = newChar:FindFirstChild("Collision")
+                    enableGodmode()
+                end)
+            end
+            WindUI:Notify("上帝模式", "已启用，你将免疫所有伤害", 3)
+        else
+            disableGodmode()
+            if _G.GodmodeConn then
+                _G.GodmodeConn:Disconnect()
+                _G.GodmodeConn = nil
+            end
+            WindUI:Notify("上帝模式", "已禁用", 2)
+        end
+    end
+})
+
+Y:Toggle({
+    Title = "无限复活",
+    Default = false,
+    Callback = function(value)
+        local function revive()
+            if remotesFolder and remotesFolder:FindFirstChild("Revive") then
+                remotesFolder.Revive:FireServer()
+            end
+        end
+        
+        if value then
+            if not LocalPlayer:GetAttribute("Alive") then
+                task.wait(1.25)
+                revive()
+            end
+            
+            if not _G.InfReviveConn then
+                _G.InfReviveConn = LocalPlayer:GetAttributeChangedSignal("Alive"):Connect(function()
+                    if Y:GetValue("无限复活") and not LocalPlayer:GetAttribute("Alive") then
+                        task.wait(1.25)
+                        revive()
+                        WindUI:Notify("无限复活", "检测到死亡，正在复活...", 2)
+                    end
+                end)
+            end
+            
+            WindUI:Notify("无限复活", "已启用，死亡后将自动复活", 3)
+        else
+            if _G.InfReviveConn then
+                _G.InfReviveConn:Disconnect()
+                _G.InfReviveConn = nil
+            end
+            WindUI:Notify("无限复活", "已禁用", 2)
+        end
     end
 })
