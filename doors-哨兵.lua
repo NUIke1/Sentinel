@@ -137,6 +137,9 @@ Window:CreateTopbarButton("theme-switcher", "moon", function()
     WindUI:Notify({ Title = "主题已更改", Content = "当前主题: "..WindUI:GetCurrentTheme(), Duration = 2 })
 end, 990)
 
+local SettingsSection = Window:Section({ Title = "设置", Opened = true })
+local SettingsTab = SettingsSection:Tab({ Title = "设置", Icon = "settings" })
+
 local VisualSection = Window:Section({ Title = "透视&视觉", Opened = true })
 local ConfigSection = VisualSection:Tab({ Title = "颜色配置", Icon = "palette" })
 local PlayerTab = VisualSection:Tab({ Title = "玩家透视", Icon = "user" })
@@ -430,6 +433,7 @@ local function ScanPlayers()
 end
 
 local function UpdateAllESP()
+    if espMode ~= "Original" then return end
     scanFrame = scanFrame + 1
     if scanFrame < scanInterval then return end
     scanFrame = 0
@@ -474,6 +478,7 @@ local function StopESP()
 end
 
 local function checkAndStartESP()
+    if espMode ~= "Original" then return end
     local any = false
     for _, v in pairs(espActive) do
         if v then any = true break end
@@ -672,6 +677,9 @@ PlayerTab:Toggle({
         playClickSound()
         espActive.Player = state
         checkAndStartESP()
+        if espMode == "3DBox" and Box3DSettings.connection then
+            Box3DSettings.ShowSurvivorBoxes = state
+        end
     end
 })
 
@@ -770,6 +778,9 @@ for _, name in ipairs(monsters) do
             playClickSound()
             espActive[name] = state
             checkAndStartESP()
+            if espMode == "3DBox" and Box3DSettings.connection then
+                Box3DSettings.ShowKillerBoxes = state
+            end
         end
     })
 end
@@ -816,10 +827,14 @@ ConfigSection:Colorpicker({
     Callback = function(color)
         playClickSound()
         colors.player = color
-        for obj, data in pairs(ESPObjects) do
-            if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj ~= LocalPlayer.Character then
-                if data.highlight then pcall(function() data.highlight.FillColor = color end) end
+        if espMode == "Original" then
+            for obj, data in pairs(ESPObjects) do
+                if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj ~= LocalPlayer.Character then
+                    if data.highlight then pcall(function() data.highlight.FillColor = color end) end
+                end
             end
+        elseif espMode == "3DBox" then
+            Box3DSettings.SurvivorColor = color
         end
     end
 })
@@ -830,10 +845,14 @@ ConfigSection:Colorpicker({
     Callback = function(color)
         playClickSound()
         colors.monster = color
-        for obj, data in pairs(ESPObjects) do
-            if categoryMap[obj.Name] == "monster" and data.highlight then
-                pcall(function() data.highlight.FillColor = color end)
+        if espMode == "Original" then
+            for obj, data in pairs(ESPObjects) do
+                if categoryMap[obj.Name] == "monster" and data.highlight then
+                    pcall(function() data.highlight.FillColor = color end)
+                end
             end
+        elseif espMode == "3DBox" then
+            Box3DSettings.KillerColor = color
         end
     end
 })
@@ -844,9 +863,11 @@ ConfigSection:Colorpicker({
     Callback = function(color)
         playClickSound()
         colors.item = color
-        for obj, data in pairs(ESPObjects) do
-            if categoryMap[obj.Name] == "item" and data.highlight then
-                pcall(function() data.highlight.FillColor = color end)
+        if espMode == "Original" then
+            for obj, data in pairs(ESPObjects) do
+                if categoryMap[obj.Name] == "item" and data.highlight then
+                    pcall(function() data.highlight.FillColor = color end)
+                end
             end
         end
     end
@@ -858,9 +879,11 @@ ConfigSection:Colorpicker({
     Callback = function(color)
         playClickSound()
         colors.world = color
-        for obj, data in pairs(ESPObjects) do
-            if categoryMap[obj.Name] == "world" and data.highlight then
-                pcall(function() data.highlight.FillColor = color end)
+        if espMode == "Original" then
+            for obj, data in pairs(ESPObjects) do
+                if categoryMap[obj.Name] == "world" and data.highlight then
+                    pcall(function() data.highlight.FillColor = color end)
+                end
             end
         end
     end
@@ -872,9 +895,11 @@ ConfigSection:Colorpicker({
     Callback = function(color)
         playClickSound()
         colors.gold = color
-        for obj, data in pairs(ESPObjects) do
-            if categoryMap[obj.Name] == "gold" and data.highlight then
-                pcall(function() data.highlight.FillColor = color end)
+        if espMode == "Original" then
+            for obj, data in pairs(ESPObjects) do
+                if categoryMap[obj.Name] == "gold" and data.highlight then
+                    pcall(function() data.highlight.FillColor = color end)
+                end
             end
         end
     end
@@ -886,10 +911,12 @@ ConfigSection:Colorpicker({
     Callback = function(color)
         playClickSound()
         colors.monsterText = color
-        for obj, data in pairs(ESPObjects) do
-            if categoryMap[obj.Name] == "monster" and data.billboard then
-                local label = data.billboard:FindFirstChildOfClass("TextLabel")
-                if label then pcall(function() label.TextColor3 = color end) end
+        if espMode == "Original" then
+            for obj, data in pairs(ESPObjects) do
+                if categoryMap[obj.Name] == "monster" and data.billboard then
+                    local label = data.billboard:FindFirstChildOfClass("TextLabel")
+                    if label then pcall(function() label.TextColor3 = color end) end
+                end
             end
         end
     end
@@ -901,10 +928,12 @@ ConfigSection:Colorpicker({
     Callback = function(color)
         playClickSound()
         colors.otherText = color
-        for obj, data in pairs(ESPObjects) do
-            if categoryMap[obj.Name] ~= "monster" and data.billboard then
-                local label = data.billboard:FindFirstChildOfClass("TextLabel")
-                if label then pcall(function() label.TextColor3 = color end) end
+        if espMode == "Original" then
+            for obj, data in pairs(ESPObjects) do
+                if categoryMap[obj.Name] ~= "monster" and data.billboard then
+                    local label = data.billboard:FindFirstChildOfClass("TextLabel")
+                    if label then pcall(function() label.TextColor3 = color end) end
+                end
             end
         end
     end
@@ -1146,11 +1175,11 @@ B:Toggle({
     Tooltip = "自动为你隐藏",
     Callback = function(Value)
         local EntityDistances = {
-            RushMoving = 50,
-            BackdoorRush = 50,
-            AmbushMoving = 100,
-            A60 = 100,
-            A120 = 35,
+            RushMoving = 80,
+            BackdoorRush = 80,
+            AmbushMoving = 130,
+            A60 = 130,
+            A120 = 65,
         }
         local Rooms = workspace.CurrentRooms
         local LocalPlayer = game.Players.LocalPlayer
@@ -1358,6 +1387,7 @@ B:Toggle({
                                             pcall(function()
                                                 fireproximityprompt(Prompt)
                                             end)
+                                            task.wait(3)
                                         end
                                         break
                                     end
@@ -1385,7 +1415,9 @@ B:Dropdown({
     Title = "自动隐藏模式",
     Values = {"Safety", "Close Call"},
     Default = "Safety",
-    Callback = function(Value) end
+    Callback = function(Value) 
+        local mode = Value
+    end
 })
 
 B:Slider({
@@ -2717,3 +2749,314 @@ Y:Toggle({
         end
     end
 })
+
+local Box3DSettings = {
+    Enabled = false,
+    ShowSurvivorBoxes = true,
+    ShowKillerBoxes = true,
+    SurvivorColor = Color3.fromRGB(0, 255, 255),
+    KillerColor = Color3.fromRGB(255, 0, 0),
+    UseTeamColor = true,
+    Thickness = 1,
+    Transparency = 0.7,
+    BoxHeightOffset = 0.5,
+    SurvivorBoxScale = 1.0,
+    KillerBoxScale = 1.2,
+    LeftWidthScale = 1.0,
+    RightWidthScale = 1.0,
+    FrontExtend = 1.0,
+    BackExtend = 1.0,
+    FrontExtendMultiplier = 1.0,
+    BackExtendMultiplier = 1.0,
+    HeadOffset = 1.5,
+    FootOffset = 0.2,
+    BoxHeightScale = 1.0,
+    VerticalOffset = 0,
+    connection = nil,
+    removedConnection = nil
+}
+
+local Box3DDrawings = {}
+
+local function create3DBoxDrawing()
+    local drawing = { lines = {}, visible = false }
+    for i = 1, 12 do
+        drawing.lines[i] = Drawing.new("Line")
+        drawing.lines[i].Thickness = Box3DSettings.Thickness
+        drawing.lines[i].Transparency = Box3DSettings.Transparency
+        drawing.lines[i].Visible = false
+    end
+    return drawing
+end
+
+local function calculateModelBoundingBox(model, isKiller)
+    local rootPart = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso") or model:FindFirstChild("UpperTorso")
+    local head = model:FindFirstChild("Head")
+    
+    if rootPart then
+        local size = rootPart.Size
+        local cframe = rootPart.CFrame
+        local scale = isKiller and Box3DSettings.KillerBoxScale or Box3DSettings.SurvivorBoxScale
+        size = size * scale
+        
+        local baseHeight = 5
+        if head then
+            baseHeight = (head.Position.Y - rootPart.Position.Y) * 2
+        end
+        local height = (baseHeight + Box3DSettings.HeadOffset + Box3DSettings.FootOffset) * Box3DSettings.BoxHeightScale
+        
+        local leftOffset = (size.X/2) * Box3DSettings.LeftWidthScale
+        local rightOffset = (size.X/2) * Box3DSettings.RightWidthScale
+        local frontOffset = (size.Z/2) * Box3DSettings.FrontExtend * Box3DSettings.FrontExtendMultiplier
+        local backOffset = (size.Z/2) * Box3DSettings.BackExtend * Box3DSettings.BackExtendMultiplier
+        
+        local min = Vector3.new(
+            cframe.Position.X - leftOffset,
+            cframe.Position.Y - height/2 + Box3DSettings.FootOffset,
+            cframe.Position.Z - backOffset
+        )
+        local max = Vector3.new(
+            cframe.Position.X + rightOffset,
+            cframe.Position.Y + height/2 + Box3DSettings.HeadOffset,
+            cframe.Position.Z + frontOffset
+        )
+        
+        min = Vector3.new(min.X, min.Y + Box3DSettings.BoxHeightOffset + Box3DSettings.VerticalOffset, min.Z)
+        max = Vector3.new(max.X, max.Y + Box3DSettings.BoxHeightOffset + Box3DSettings.VerticalOffset, max.Z)
+        
+        return min, max
+    else
+        local min = Vector3.new(math.huge, math.huge, math.huge)
+        local max = Vector3.new(-math.huge, -math.huge, -math.huge)
+        
+        for _, part in ipairs(model:GetDescendants()) do
+            if part:IsA("BasePart") then
+                local cframe = part.CFrame
+                local size = part.Size
+                local scale = isKiller and Box3DSettings.KillerBoxScale or Box3DSettings.SurvivorBoxScale
+                size = size * scale
+                
+                local leftOffset = (size.X/2) * Box3DSettings.LeftWidthScale
+                local rightOffset = (size.X/2) * Box3DSettings.RightWidthScale
+                local frontOffset = (size.Z/2) * Box3DSettings.FrontExtend * Box3DSettings.FrontExtendMultiplier
+                local backOffset = (size.Z/2) * Box3DSettings.BackExtend * Box3DSettings.BackExtendMultiplier
+                
+                local vertices = {
+                    cframe * Vector3.new(rightOffset, (size.Y/2) * Box3DSettings.BoxHeightScale, frontOffset),
+                    cframe * Vector3.new(-leftOffset, (size.Y/2) * Box3DSettings.BoxHeightScale, frontOffset),
+                    cframe * Vector3.new(rightOffset, (-size.Y/2) * Box3DSettings.BoxHeightScale, frontOffset),
+                    cframe * Vector3.new(-leftOffset, (-size.Y/2) * Box3DSettings.BoxHeightScale, frontOffset),
+                    cframe * Vector3.new(rightOffset, (size.Y/2) * Box3DSettings.BoxHeightScale, -backOffset),
+                    cframe * Vector3.new(-leftOffset, (size.Y/2) * Box3DSettings.BoxHeightScale, -backOffset),
+                    cframe * Vector3.new(rightOffset, (-size.Y/2) * Box3DSettings.BoxHeightScale, -backOffset),
+                    cframe * Vector3.new(-leftOffset, (-size.Y/2) * Box3DSettings.BoxHeightScale, -backOffset)
+                }
+                
+                for _, vertex in ipairs(vertices) do
+                    min = Vector3.new(math.min(min.X, vertex.X), math.min(min.Y, vertex.Y), math.min(min.Z, vertex.Z))
+                    max = Vector3.new(math.max(max.X, vertex.X), math.max(max.Y, vertex.Y), math.max(max.Z, vertex.Z))
+                end
+            end
+        end
+        
+        min = Vector3.new(min.X, min.Y + Box3DSettings.BoxHeightOffset + Box3DSettings.VerticalOffset, min.Z)
+        max = Vector3.new(max.X, max.Y + Box3DSettings.BoxHeightOffset + Box3DSettings.VerticalOffset, max.Z)
+        
+        return min, max
+    end
+end
+
+local function updateSingle3DBox(model, drawing, color, isKiller)
+    local camera = workspace.CurrentCamera
+    local min, max = calculateModelBoundingBox(model, isKiller)
+    
+    local vertices = {
+        Vector3.new(max.X, max.Y, max.Z),
+        Vector3.new(min.X, max.Y, max.Z),
+        Vector3.new(max.X, min.Y, max.Z),
+        Vector3.new(min.X, min.Y, max.Z),
+        Vector3.new(max.X, max.Y, min.Z),
+        Vector3.new(min.X, max.Y, min.Z),
+        Vector3.new(max.X, min.Y, min.Z),
+        Vector3.new(min.X, min.Y, min.Z)
+    }
+    
+    local screenVertices = {}
+    local anyVisible = false
+    for i, vertex in ipairs(vertices) do
+        local screenPos, onScreen = camera:WorldToViewportPoint(vertex)
+        screenVertices[i] = Vector2.new(screenPos.X, screenPos.Y)
+        if onScreen then anyVisible = true end
+    end
+    
+    for _, line in pairs(drawing.lines) do
+        line.Color = color
+        line.Thickness = Box3DSettings.Thickness
+        line.Transparency = Box3DSettings.Transparency
+    end
+    
+    if anyVisible then
+        drawing.lines[1].From, drawing.lines[1].To = screenVertices[5], screenVertices[6]
+        drawing.lines[2].From, drawing.lines[2].To = screenVertices[6], screenVertices[8]
+        drawing.lines[3].From, drawing.lines[3].To = screenVertices[8], screenVertices[7]
+        drawing.lines[4].From, drawing.lines[4].To = screenVertices[7], screenVertices[5]
+        drawing.lines[5].From, drawing.lines[5].To = screenVertices[1], screenVertices[2]
+        drawing.lines[6].From, drawing.lines[6].To = screenVertices[2], screenVertices[4]
+        drawing.lines[7].From, drawing.lines[7].To = screenVertices[4], screenVertices[3]
+        drawing.lines[8].From, drawing.lines[8].To = screenVertices[3], screenVertices[1]
+        drawing.lines[9].From, drawing.lines[9].To = screenVertices[1], screenVertices[5]
+        drawing.lines[10].From, drawing.lines[10].To = screenVertices[2], screenVertices[6]
+        drawing.lines[11].From, drawing.lines[11].To = screenVertices[3], screenVertices[7]
+        drawing.lines[12].From, drawing.lines[12].To = screenVertices[4], screenVertices[8]
+        
+        for _, line in pairs(drawing.lines) do
+            line.Visible = true
+        end
+        drawing.visible = true
+    else
+        if drawing.visible then
+            for _, line in pairs(drawing.lines) do
+                line.Visible = false
+            end
+            drawing.visible = false        end
+    end
+end
+
+local function update3DBoxes()
+    if espMode ~= "3DBox" then return end
+    for obj, drawing in pairs(Box3DDrawings) do
+        if not obj or not obj.Parent then
+            for _, line in pairs(drawing.lines) do
+                line:Remove()
+            end
+            Box3DDrawings[obj] = nil
+        else
+            for _, line in pairs(drawing.lines) do
+                line.Visible = false
+            end
+            drawing.visible = false
+        end
+    end
+    
+    if espActive.Player and Box3DSettings.ShowSurvivorBoxes then
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                if not Box3DDrawings[player.Character] then
+                    Box3DDrawings[player.Character] = create3DBoxDrawing()
+                end
+                updateSingle3DBox(player.Character, Box3DDrawings[player.Character], Box3DSettings.SurvivorColor, false)
+            end
+        end
+    end
+    
+    if Box3DSettings.ShowKillerBoxes then
+        for _, name in ipairs(monsters) do
+            if espActive[name] then
+                for _, entity in ipairs(workspace:GetDescendants()) do
+                    if entity.Name == name and entity:IsA("Model") then
+                        if not Box3DDrawings[entity] then
+                            Box3DDrawings[entity] = create3DBoxDrawing()
+                        end
+                        updateSingle3DBox(entity, Box3DDrawings[entity], Box3DSettings.KillerColor, true)
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function cleanup3DBoxes()
+    for _, drawing in pairs(Box3DDrawings) do
+        if drawing then
+            for _, line in pairs(drawing.lines) do
+                line:Remove()
+            end
+        end
+    end
+    Box3DDrawings = {}
+end
+
+local espMode = "Original"
+
+SettingsTab:Dropdown({
+    Title = "ESP模式选择",
+    Values = {"原版ESP", "3D Box ESP"},
+    Value = "原版ESP",
+    Callback = function(selected)
+        playClickSound()
+        if selected == "原版ESP" then
+            espMode = "Original"
+            if Box3DSettings.connection then
+                Box3DSettings.connection:Disconnect()
+                Box3DSettings.connection = nil
+            end
+            if Box3DSettings.removedConnection then
+                Box3DSettings.removedConnection:Disconnect()
+                Box3DSettings.removedConnection = nil
+            end
+            cleanup3DBoxes()
+            checkAndStartESP()
+            WindUI:Notify("ESP模式", "已切换到原版ESP", 2)
+        else
+            espMode = "3DBox"
+            if espConnection then
+                espConnection:Disconnect()
+                espConnection = nil
+            end
+            for obj, _ in pairs(ESPObjects) do
+                RemoveESP(obj)
+            end
+            if not Box3DSettings.connection then
+                Box3DSettings.connection = RunService.RenderStepped:Connect(update3DBoxes)
+            end
+            if not Box3DSettings.removedConnection then
+                Box3DSettings.removedConnection = workspace.DescendantRemoving:Connect(function(descendant)
+                    if Box3DDrawings[descendant] then
+                        for _, line in pairs(Box3DDrawings[descendant].lines) do
+                            line:Remove()
+                        end
+                        Box3DDrawings[descendant] = nil
+                    end
+                end)
+            end
+            WindUI:Notify("ESP模式", "已切换到3D Box ESP", 2)
+        end
+    end
+})
+
+Box3DSettings.ShowSurvivorBoxes = espActive.Player
+Box3DSettings.ShowKillerBoxes = false
+for _, name in ipairs(monsters) do
+    if espActive[name] then
+        Box3DSettings.ShowKillerBoxes = true
+        break
+    end
+end
+
+VisualTab:Toggle({
+    Title = "3D方框透明度",
+    Default = false,
+    Callback = function(state)
+        playClickSound()
+        if state then
+            Box3DSettings.Transparency = 0.5
+        else
+            Box3DSettings.Transparency = 0.7
+        end
+    end
+})
+
+VisualTab:Toggle({
+    Title = "3D方框厚度",
+    Default = false,
+    Callback = function(state)
+        playClickSound()
+        if state then
+            Box3DSettings.Thickness = 2
+        else
+            Box3DSettings.Thickness = 1
+        end
+    end
+})
+
+WindUI:Notify("脚本已加载", "完整版哨兵脚本", 3)
