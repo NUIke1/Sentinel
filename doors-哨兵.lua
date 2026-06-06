@@ -68,7 +68,7 @@ local function gradient(text, startColor, endColor)
 end
 
 WindUI:Popup({
-    Title = gradient("Sentinel 棕榈", Color3.fromHex("#8B4513"), Color3.fromHex("#D2691E")),
+    Title = gradient("Sentinel-测试", Color3.fromHex("#8B4513"), Color3.fromHex("#D2691E")),
     Icon = "sparkles",
     Content = "loc:LIB_DESC",
     Buttons = {
@@ -153,8 +153,8 @@ local NotifySubTab = NotifySection:Tab({ Title = "提示设置", Icon = "setting
 local MovementSection = Window:Section({ Title = "娱乐", Opened = true })
 local Y = MovementSection:Tab({ Title = "娱乐", Icon = "user" })
 
-local M = Window:Section({ Title = "娱乐", Opened = true })
-local m = M:Tab({ Title = "娱乐", Icon = "user" })
+local M = Window:Section({ Title = "主要", Opened = true })
+local m = M:Tab({ Title = "Main", Icon = "user" })
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -2555,5 +2555,90 @@ B:Toggle({
         else
             if conn then conn:Disconnect() end
         end
+    end
+})
+
+local LocalPlayer = game.Players.LocalPlayer
+
+Y:Toggle({
+    Title = "处于眩晕状态",
+    Default = false,
+    Callback = function(state)
+        local character = LocalPlayer.Character
+        if character then
+            character:SetAttribute("Stunned", state)
+        end
+        WindUI:Notify("眩晕", state and "已启用" or "已禁用", 2)
+    end
+})
+
+local Oxygenslider = Y:Slider({
+    Title = "氧气值",
+    Value = { Min = 0, Max = 100, Default = 100 },
+    Callback = function(value)
+        local character = LocalPlayer.Character
+        if character then
+            character:SetAttribute("Oxygen", value)
+        end
+        WindUI:Notify("氧气", "当前氧气值: " .. value, 1)
+    end
+})
+
+local SpeedBoostSlider = m:Slider({
+    Title = "速度增益(修改为5最合适)",
+    Value = { Min = 0, Max = 10, Default = 0 },
+    Callback = function(value)
+        local character = LocalPlayer.Character
+        if character then
+            character:SetAttribute("SpeedBoost", value)
+        end
+        WindUI:Notify("速度增益", "当前增益: " .. value, 1)
+    end
+})
+
+local upsideDownActive = false
+local upsideDownConn = nil
+
+Y:Toggle({
+    Title = "倒立",
+    Default = false,
+    Callback = function(Value)
+        upsideDownActive = Value
+        
+        local function setUpsideDown(state)
+            local char = LocalPlayer.Character
+            if not char then return end
+            
+            local collision = char:FindFirstChild("Collision")
+            if not collision then return end
+            
+            if state then
+                local rotation = collision.Rotation
+                collision.Rotation = Vector3.new(rotation.X, rotation.Y, -90)
+            else
+                local rotation = collision.Rotation
+                collision.Rotation = Vector3.new(rotation.X, rotation.Y, 90)
+            end
+        end
+        
+        if upsideDownConn then
+            upsideDownConn:Disconnect()
+            upsideDownConn = nil
+        end
+        
+        setUpsideDown(Value)
+        
+        if Value then
+            upsideDownConn = LocalPlayer.CharacterAdded:Connect(function(newChar)
+                task.wait(0.5)
+                local collision = newChar:FindFirstChild("Collision")
+                if collision then
+                    local rotation = collision.Rotation
+                    collision.Rotation = Vector3.new(rotation.X, rotation.Y, -90)
+                end
+            end)
+        end
+        
+        WindUI:Notify("倒立", Value and "已启用" or "已禁用", 2)
     end
 })
