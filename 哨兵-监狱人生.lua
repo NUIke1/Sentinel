@@ -1,3 +1,8 @@
+if not cloneref then cloneref = function(a) return a end end
+if not getgenv then getgenv = function() return _G end end
+if not getrenv then getrenv = function() return getfenv() end end
+if not newcclosure then newcclosure = function(a) return a end end
+if not hookmetamethod then hookmetamethod = function(a,b,c) return c end end
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/KingScriptAE/No-sirve-nada./refs/heads/main/main.lua"))()
 
 WindUI.TransparencyValue = 0.2
